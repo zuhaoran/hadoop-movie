@@ -1,0 +1,175 @@
+yarn也有一个web端口
+	端口号是8088
+
+关闭防火墙service iptables stop
+
+防火墙开机不启动，chkconfig iptables off
+	chkconfig命令可以查看服务是否开机启动
+
+只有在8088端口显示出来的任务，才是分布式执行的
+
+MR任务失败了。MR的日志路径
+	/home/hadoop/soft/hadoop-2.6.0/logs/userlogs/
+
+MR运行模式
+	本地模式：MR程序在本机执行，main方法，右键，run
+		输入，输出，运行都在本地
+	半本地模式：
+		输入，输出在HDFS，运算在本地
+	上面两种运行模式，在8088端口里找不到任务
+		因为此种任务是使用本机进行计算的，而不是走的集群运算
+	
+	集群模式
+		1. 把程序打为一个jar包，上传到hadoop运行
+			上传一个jar包的原因，本地计算（把程序发送到数据所在的地方）
+		2. 
+		
+		
+主节点由core-site.xml中的
+	<property>
+	  <name>fs.defaultFS</name>
+	  <value>hdfs://node1:9000</value>
+	 </property>
+集群中的从节点是有slaves文件制定
+
+
+倒排索引
+	搜索，sql:like '%keyword%'
+		java编程思想   程序
+	java里搜索使用lucene  -->  solr
+	
+	三个文件：
+	
+	a.txt
+		java编程思想
+	b.txt
+		大数据编程
+	c.txt
+		c语言编程
+	
+	能搜索需要两个步骤，
+		1. 建立索引
+			如a.txt
+				java	-> a.txt
+				编	-> a.txt
+				程	-> a.txt
+				思	-> a.txt
+				想	-> a.txt
+				
+				b.txt
+				大	-> b.txt
+				数	-> b.txt
+				据	-> b.txt
+				编	-> b.txt
+				程	-> b.txt
+			
+		2. 搜索
+			关键字：程序
+			切词
+				程
+				序
+	
+	通过文件及文件内容
+	
+		a.txt
+			java编程思想
+		b.txt
+			大数据编程
+		c.txt
+			c语言编程
+			
+		内容 --> [<文件, fre>,<文件, fre>...]
+			程 --> <a.txt, 1> <b.txt, 1> <c.txt, 1>	
+			java --> <a.txt, 1>
+			
+		map<偏移量, 这行内容>
+			//获取文件名称
+			//行进行切分词
+			
+			输出：单词-文件名称   1
+			
+		reduce<单词-文件名称, [1,1,1,1,1]>
+			
+			输出：<单词，文件--5>
+				<java，a.txt--5>
+				<java，b.txt--3>
+		-----------------------------------------
+		map1 <偏移量, 行内容>
+			//获取文件名称
+			//内容切词
+			
+			输出<单词-文件名称,1>
+		reduce1 <单词-文件名称, [1,1,1,1,1]>
+			 sum（1,1,1,1,1）
+			输出<单词\t文件名称,sum>
+		
+		
+		map2<偏移量, 行内容>
+			行进行\t切分，获得单词，文件名称，sum
+			
+			输出<单词,文件名称-sum>
+			
+		reduce2 <单词,[文件名称-sum]>
+			把values进行连接字符串
+			输出<单词,连接字符串>
+			
+			
+			
+wordcount
+	map<偏移量, 行内容>
+		切分单词
+		
+		输出<单词,1>
+			<hello,1>
+			<hello,1>
+			<hello,1>
+			<hello,1>
+			<hello,1>
+			<hello,1>
+		
+			<hello,6>
+	reduce <单词,[1,1,1,1,1]>
+		把values进行求和
+		输出<单词,sum>
+	
+	如果map和reduce不在同一个节点上运行，需要map产生的中间
+		数据，通过网络传给reduce，这样会造成一定的网络开销
+		中间数据应该是越少越好
+		combiner其实就是一个reduce，不过combiner在map执行完后开始执行
+		combiner使用有限制，使用和不使用结果都是一样的
+			如，求平均数
+			1，2，3，4，5，6，7
+			
+	输入的数据比较大的时候，
+		一个输入块对应的是一个map
+		1map
+			combiner  <单词--文件名称，sum>
+				<hello--文件名称，sum>
+		1map
+			combiner  <单词--文件名称，sum>
+				<hello--文件名称，sum>
+
+				
+				
+HBase最开始用于存储
+	yahoo使用爬虫从互联网里抓数据，
+		同一个URL地址，随着时间的推移，该URL抓取到的内容可能会变
+			同一个URL，6-29，5-1，
+		rdbms
+	
+		行键，列族，列，时间戳
+			定义表的时候，只需要定义表名称和列族即可
+				
+		删除标记，hadoop对修改天生支持不太好。
+			haodop做的是一次写，N次读的操作
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+	

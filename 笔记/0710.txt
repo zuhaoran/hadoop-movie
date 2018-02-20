@@ -1,0 +1,145 @@
+﻿hive的使用
+	数据仓库的工具
+flume抓取电影网站生成的日志数据，存储到HDFS里
+电影网站部署到虚拟机里，
+	
+之前处理HDFS上的数据，写个MapReduce程序
+	HiveQL简称HQL，是以SQL为标准，底层会转化为MR程序去执行
+		hibernate HQL
+	SQL
+
+Hive元数据，创建的库/表结构
+	
+	
+Hive配置
+	1. 安装MySQL
+		yum install mysql-server mysql mysql-devel
+	2. 开启mysql
+		service mysqld start
+	3. 设置root密码
+		mysqladmin -u root password 'root'
+	4. 设置mysql开机启动
+		chkconfig mysqld on
+登陆
+mysql -h hadoop -u root password 'root'
+ update user set password=password('root') where user='root'; 
+	5. 解压hive
+	6. 修改hive-env.sh，从模板文件复制出来
+		export HADOOP_HEAPSIZE=1024 
+		# Set HADOOP_HOME to point to a specific hadoop install directory 
+		HADOOP_HOME=/home/hadoop/hadoop-2.4.1 
+		# Hive Configuration Directory can be controlled by: 
+		export HIVE_CONF_DIR=/home/hadoop/apache-hive-1.0.0-bin/conf 
+		# Folder containing extra ibraries required for hive compilation/execution can be controlled by: 
+		export HIVE_AUX_JARS_PATH=/home/hadoop/apache-hive-1.0.0-bin/lib
+	7. 配置hive-site.xml
+	8. 拷贝mysql-connector-java-5.0.8-bin.jar到hive 的lib下面
+	9. 创建hive数据库 linux相关-->安装mysql
+	10. 把jline-2.12.jar拷贝到hadoop相应的目录下，替代jline-0.9.94.jar，否则启动会报错
+		cp hive/lib/jline-2.12.jar  hadoop-2.6.0/share/hadoop/yarn/lib/
+	11. hive命令启动hive
+
+hive里创建的数据库都在HDFS的/user/hive/warehouse目录下
+	数据库和数据表都是以目录的形式存在的
+		所创建的数据库和数据表都是HDFS里的一个目录
+		数据库的目录名字是库名字.db
+		数据表的目录名字就是表的名字
+		
+		表里的数据就是目录里的文件
+
+hive操作的是HDFS中有结构的数据
+	可以从行级别进行解析，如，行以逗号，空格分隔，JSON数据
+
+	创建一个内部表，会在HDFS中有个以表名称创建的目录
+		该表中所有的数据，都在该目录中
+		删除内部表的时候，删除表结构，删除数据
+		
+	外部表，创建方式和内部表一样，数据存储不一样。
+		外部表的数据没有存储在其以表名称创建的目录中
+		create external table external_table1 (id int, name string) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' location '/hive/testtable';
+		删除外部表的时候，只删除表结构，不删除数据
+
+	内部表和外部表都是指向的一个目录，做查询的时候，是对该目录中的数据进行过滤查询
+		如果这个目录中的数据很多，这时候做查询比较慢
+			目录中的数据有特征，比，日志信息，按天/周/月进行存储
+			如果查询某一天的日志数据，不要在所有的数据中进行查询
+			分区表的意思：按照人为的因素把不同的数据存储到不同的地方
+				分区会在表目录下再创建子目录，查询的时候，指定分区，只会在该目录中查询
+			
+			create table logs() pratition day=2017-7-10
+				/user/hive/warehouse/logs/
+				/user/hive/warehouse/logs/2017-7-10
+				/user/hive/warehouse/logs/2017-7-11
+				/user/hive/warehouse/logs/2017-7-12
+				
+		create table partition_table(id int,name string) partitioned by(daytime string,city string) row format delimited fields terminated by ',' stored as TEXTFILE;
+		load data local inpath '/home/hadoop/testData.txt' into table partition_table partition (daytime='2013-02-01',city='bj');
+
+hive解析json
+	把json-serde-1.3.6-SNAPSHOT-jar-with-dependencies.jar复制到hive的lib目录下。重新进入hive
+
+	建表：
+	create table user_movie(custid string, movieid string, activity string, recommended string, time string, price string, rating string, position string) ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'  STORED AS TEXTFILE;
+
+部署及日志抓取
+	
+	
+flume配置
+
+
+source监听某个文件，通过内存存储到hdfs中
+
+1. 解压
+	  tar -zxvf apache-flume-1.6.0-bin.tar.gz
+	  获得解压缩目录apache-flume-1.6.0-bin
+2. 修改配置文件，进入$FLUME_HOME/conf目录
+
+	  cp flume-env.sh.template flume-env.sh获取flume-env.sh文件
+	  修改flume-env.sh文件，
+	  export JAVA_HOME=/home/hadoop/jdk1.8.0_45
+	  
+	  cp flume-conf.properties.template flume-conf.properties获取flume-conf.properties文件
+	 修改flume-conf.properties
+	  
+a1.sources = r1
+a1.sinks = k1
+a1.channels = c1
+
+# For each one of the sources, the type is defined
+a1.sources.r1.type = exec
+a1.sources.r1.command = tail -F /home/hadoop/appData/movie/activity/activity.out
+# The channel can be defined as follows.
+a1.sources.r1.channels = c1
+
+
+# Each sink's type must be defined
+a1.sinks.k1.type = hdfs
+a1.sinks.k1.hdfs.path=hdfs://hadoop:9000/flume/activity/%y-%m-%d/%H%M/%S
+a1.sinks.k1.hdfs.filePrefix = activity
+a1.sinks.k1.hdfs.round = true
+a1.sinks.k1.hdfs.roundValue = 10
+a1.sinks.k1.hdfs.roundUnit = hour
+a1.sinks.k1.hdfs.useLocalTimeStamp = true
+#Specify the channel the sink should use
+a1.sinks.k1.channel = c1
+
+# Each channel's type is defined.
+a1.channels.c1.type = memory
+
+# Other config values specific to each type of channel(sink or source)
+# can be defined as well
+# In this case, it specifies the capacity of the memory channel
+a1.channels.c1.capacity = 100
+
+3. 启动flume
+
+	复制hadoopjar包，
+		[hadoop@hadoop apache-flume-1.6.0-bin]$ cp ~/app/hadoop-2.6.0/share/hadoop/common/*.jar lib/
+		[hadoop@hadoop apache-flume-1.6.0-bin]$ cp ~/app/hadoop-2.6.0/share/hadoop/common/lib/*.jar lib/
+		[hadoop@hadoop apache-flume-1.6.0-bin]$ cp ~/app/hadoop-2.6.0/share/hadoop/hdfs/*.jar lib/
+
+	  nohup bin/flume-ng agent --conf conf --conf-file conf/flume-conf.properties --name a1 -Dflume.root.logger=INFO,console &
+
+
+
+	

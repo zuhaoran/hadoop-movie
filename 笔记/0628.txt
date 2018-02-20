@@ -1,0 +1,86 @@
+HDFS shell操作，通过Hadoop提供的一些命令。
+HDFS API， java API
+	hadoop-2.6.0\share\doc\api
+	
+	hadoop-2.6.0\share\hadoop\common\*.jar
+	hadoop-2.6.0\share\hadoop\common\lib\*.jar
+	hadoop-2.6.0\share\hadoop\hdfs\*.jar
+	hadoop-2.6.0\share\hadoop\hdfs\lib\*.jar
+java io 读文件                                             
+	File file=new File("c:/ab.txt");
+	FileInputStream ipputStream =new FileInputStream(file);
+	int c =inputStream.read();
+		read()-->native的方法（C\c++实现的方法，通常是要操作硬件）
+HDFS里读文件
+	192.168.80.81上执行读文件操作
+		read();最终要调用192.168.80.82节点上的read()方法
+		在客户端调用的任何操作，服务端要支持。
+		保证客户端能调用的的方法和服务端支持的方法一致
+			动态代理的接口来实现
+			服务端存放接口和实现类
+			客户端有接口
+		文件在192.168.80.82.节点上
+
+HDFS是主从结构，NN是主节点，DN是从节点
+
+MR也是主从结构，依赖于YARN进行资源管理
+	主节点是ResourceManager
+	从节点是NodeManager
+	
+发送计算指令到数据存储本地磁盘
+	本地计算
+	通常情况下，如果要处理一个文件，读取文件，之后进行处理
+		文件比较小的时候，可以这么做。
+		如果在HDFS中，文件是在不同的节点上进行存储的。
+			如果把文件从其他节点进行读取，会产生比较大的网络开销
+	
+	在MR里，是把处理程序发送到数据所在的节点进行运行
+	
+如果一个文件100G
+	MR是一个计算框架，是一个可以并行计算的结构非常简单的结构体
+	
+	电脑可以做各种的数学计算，乘法，除法，三角函数等
+		但是到电脑的计算底层，电脑只会做加法
+		减法，乘法，除法怎么来的？由N个加法转化来的
+		想要一种算法可以衍生出其他的各种算法，那么这种算法要足够的简单和通用
+	
+	MR想要能计算所有的业务，其结构要非常简单和通用
+	由map和reduce两个阶段（函数）组成
+		map输入是key--value形式，输出是key--value形式
+		reduce输入是key--values，输出是key--value形式
+			输入的key和value的数据类型额map输出的key和value数据类型一致
+			reduce输入的key的values是map输出时所有相同key的集合
+			
+		map
+			输入：<1,3>,<3,1>,<1,7>,<3,2>,<1,5>,<1,8>
+				把key和value的值乘以2，然后作为key和value输出
+				<2,6>,<6,2>,<2,14>,<6,4>,<2,10>,<2,16>
+		reduce
+			输入<2,[6,14,110,16]>,<6,[2,4]>
+			//业务处理，把所有的value求和
+			输出：<2,46>,<6,6>
+		
+		整个MR过程，那些需要我们做的
+			理解map和reduce的输入和输出类型
+			map和reduce函数体（业务代码）
+			
+大数据界的hello word
+	word count 统计一个文件中每个单词出现的次数
+	比如该文件特别大。
+		
+		map
+			输入:<这一行的偏移量,一行的内容>
+				//一行的内容进行切分
+			输出：<word,1>
+		reduce
+			输入：<word,[1,1,1,1,1.....]>
+			//对velues 求和
+			输出：<word,count>
+生成jar文件传入虚拟机（wc.jar【内有包com.test.hadoop，函数WCRunner】） 创建文件夹（input）将要MapReduce的文件放入  			
+执行：bin/hadoop jar ~/wc.jar  com.test.hadoop.mr.WCRunner  /wc/input  /wc/output
+	输出目录必须不存在
+	输入文件的时候，会把文件进行切块，默认和HDFS里的块大小一致
+	一个输入块，对应着一个map函数
+	reduce的数量可以在job中数量
+		每个reduce会对应一个输出结果文件part-r-0000
+	输入路径可以是一个文件，也可以是一个目录

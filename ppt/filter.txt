@@ -1,0 +1,49 @@
+SingleColumnValueFilter                                                               
+过滤某列值大于多少小于多少：                
+[java] view plain copy
+  List<Filter> filters = new ArrayList<Filter>();                          
+filters.add(  new SingleColumnValueFilter(Bytes.toBytes("pinfo"),  //列族  
+             Bytes.toBytes("t"),  //列名                                   
+             CompareOp.GREATER,Bytes.toBytes("1359901"]) ) //值            
+filters.add(  new SingleColumnValueFilter(Bytes.toBytes("pinfo"),          
+             Bytes.toBytes("t"),                                           
+             CompareOp.LESS,Bytes.toBytes("1389901"]) )                    
+                                                                           
+                                                                           
+FilterList filterList1 = new FilterList(Operator.MUST_PASS_ALL,filters);   
+                                                                           
+sn.setFilter(filterList1);      
+
+                                          
+                                                  
+RowFilter                                                                             
+Rowkey中包括某些字符串                                                                
+字符串存在list a内      
+ 
+[java] view plain copy
+for (int a=0;a<size;a++)                                                             
+      {                                                                           
+//      Filter filter2 = new RowFilter(CompareOp.EQUAL,                           
+  // new RegexStringComparator(".*"+maclist.get(a)+"$"));                    
+      Filter filter2 = new RowFilter(CompareOp.EQUAL,                           
+         new SubstringComparator(maclist.get(a)));                       
+                                                                                
+      filters.add(filter2);                                                       
+      }                                                                           
+      FilterList filterList1 = new FilterList(Operator.MUST_PASS_ONE,filters);    
+                                                                                  
+      sn.setFilter(filterList1);                                                  
+                                                       
+
+                                     
+                                                                                      
+ValueFilter:                                                                          
+不需要指定某个列，含指某个值的列的数据都取出来，混在一起   
+[java] view plain copy
+HTable table = new HTable(config, tableName);                                           
+    Scan scan = new Scan();                                                             
+                                                                                        
+    System.out.println("只列出值包含data1的列");                                        
+    Filter filter1 = new ValueFilter(CompareFilter.CompareOp.EQUAL,                     
+        new SubstringComparator("data1"));                                              
+scan.setFilter(filter1);       

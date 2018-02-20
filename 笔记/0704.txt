@@ -1,0 +1,12 @@
+电影网站这个项目，数据库是使用的Oracle NoSQL
+	现在要修改为HBase
+	1. 根据Oracle NoSQL的数据表来创建HBase的数据表
+		hbase表结构，表+列族
+			查询数据的时候，根据行健，
+			user, 行健：id。 info(username, password)
+	2. 上传数据(先上传一个模块的，如user)
+	3. 拿一个功能做测试（登录，进入主页显示电影信息）
+	
+		create "user","info","id"
+		put "user","id", "info:name, email,username, password","value"
+		put "user", "username", "id:id"
